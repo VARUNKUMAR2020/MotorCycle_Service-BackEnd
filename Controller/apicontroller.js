@@ -20,6 +20,7 @@ const transporter = nodemailer.createTransport({
 
 //Home Address of the server :-
 exports.home = (req, res) => {
+  res.cookie("name", "varun");
   res.send("Server is Ready and It is in Home Page");
 };
 
@@ -79,6 +80,7 @@ exports.login = async (req, res) => {
 //Forgot-Password -- Sending the OTP:-
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
+  const token = jwt.sign({ email: email }, JWT_SECRET);
   OTP = Math.floor(Math.random() * 9999);
   const existingUser = await User.findOne({ email });
   try {
@@ -109,6 +111,10 @@ exports.forgotPassword = async (req, res) => {
 
       transporter.sendMail(mailOption, (err) => {
         if (!err) {
+          res.cookie("token", token, {
+            expires: new Date(Date.now() + 50000),
+            httpOnly: true,
+          });
           res
             .status(200)
             .json({ status: true, message: "OTP Sended SuccessFully" });
@@ -119,7 +125,7 @@ exports.forgotPassword = async (req, res) => {
         }
       });
     } else {
-      res.json({ status: false, message: "PLease Register" });
+      res.json({ status: false, message: "Please Register" });
     }
   } catch (error) {
     res.status(404).json({ message: "404 Page Not Found" });
@@ -129,14 +135,36 @@ exports.forgotPassword = async (req, res) => {
 //Verifying the OTP :-
 exports.verifyOTP = async (req, res) => {
   const { UserOTP } = req.body;
-  console.log(UserOTP, OTP);
   try {
     if (UserOTP == OTP) {
-      res.status(200).json({ message: "OTP is Verified" });
+      res.status(200).json({ status: true, message: "OTP is Verified" });
     } else {
-      res.status(200).json({ message: "Invalid OTP" });
+      res.status(200).json({ status: false, message: "Invalid OTP" });
     }
   } catch (error) {
     res.status(404).json({ message: "404 Page not Found" });
+  }
+};
+
+// Changing the Password :-
+exports.changePassword = async (req, res) => {
+  const { password, confirmPassword } = req.body;
+  const { token } = req.cookie;
+  const email = jwt.verify(token.email, jwt);
+  try {
+    if (password === confirmPassword) {
+      const user = await User.findOne({ email });
+      user.password = confirmPassword;
+      res
+        .status(200)
+        .json({ status: true, message: "Password Changed successfully" });
+    } else {
+      res.status(200).json({
+        status: false,
+        message: "Password and Confirm Password Should be same",
+      });
+    }
+  } catch (error) {
+    res.status(404).json({ messag: "404 Page not Found" });
   }
 };

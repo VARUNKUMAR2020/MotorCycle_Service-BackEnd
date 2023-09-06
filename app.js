@@ -4,10 +4,12 @@ require("dotenv").config();
 const { Database } = require("./Database/database");
 const cors = require("cors");
 const API = require("./Router/router");
+const cookieParser = require("cookie-parser");
 
 //Middleware
 app.use(express.json());
 app.use(cors());
+app.use(cookieParser());
 
 //Home Server API
 app.use("/royalenfield", API);

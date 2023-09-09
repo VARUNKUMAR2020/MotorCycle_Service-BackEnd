@@ -9,6 +9,14 @@ const JWT_SECRET = "nkdgyuacfauwlVGXfwtydjuujPQdxWCHYUGYU";
 //Declarating OTP variable globally
 let OTP;
 
+//cookies option:-
+const cookieOptions = {
+  secure: true,
+  httpOnly: true,
+  expires: new Date(Date.now() + 24 * 3600 * 1000),
+  sameSite: "None",
+};
+
 //Transporter
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -20,7 +28,6 @@ const transporter = nodemailer.createTransport({
 
 //Home Address of the server :-
 exports.home = (req, res) => {
-  res.cookie("name", "varun");
   res.send("Server is Ready and It is in Home Page");
 };
 
@@ -59,17 +66,19 @@ exports.login = async (req, res) => {
   const existingUser = await User.findOne({ email });
   try {
     if (!existingUser) {
-      res.status(201).json({ status: "false", message: "Please Register" });
+      res.status(200).json({ status: "false", message: "Please Register" });
     } else {
       if (bcrypt.compare(password, existingUser.password)) {
         const token = jwt.sign({ email: existingUser.email }, JWT_SECRET);
-        res.status(200).json({
+        res.json({
           status: "true",
           message: "Logged in SuccessFully",
           data: token,
         });
       } else {
-        res.status(401).json({ message: "Please Check the Credentials" });
+        res
+          .status(401)
+          .json({ status: false, message: "Please Check the Credentials" });
       }
     }
   } catch (error) {
@@ -81,7 +90,7 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
   const token = jwt.sign({ email: email }, JWT_SECRET);
-  OTP = Math.floor(Math.random() * 9999);
+  OTP = Math.floor(1000 + Math.random() * 9000);
   const existingUser = await User.findOne({ email });
   try {
     if (existingUser) {
@@ -111,13 +120,11 @@ exports.forgotPassword = async (req, res) => {
 
       transporter.sendMail(mailOption, (err) => {
         if (!err) {
-          res.cookie("token", token, {
-            expires: new Date(Date.now() + 50000),
-            httpOnly: true,
+          res.cookie("token", token).json({
+            status: true,
+            message: "OTP Sended SuccessFully",
+            data: token,
           });
-          res
-            .status(200)
-            .json({ status: true, message: "OTP Sended SuccessFully" });
         } else {
           res
             .status(205)
@@ -146,15 +153,18 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// Changing the Password :-
+// Reset the Password :-
 exports.changePassword = async (req, res) => {
-  const { password, confirmPassword } = req.body;
-  const { token } = req.cookie;
-  const email = jwt.verify(token.email, jwt);
+  const { password, confirmPassword, token } = req.body;
+  const userEmail = jwt.verify(token, JWT_SECRET);
+  const email = userEmail.email;
   try {
     if (password === confirmPassword) {
-      const user = await User.findOne({ email });
-      user.password = confirmPassword;
+      const encryptedPassword = await bcrypt.hash(password, 10);
+      await User.updateOne(
+        { email: email },
+        { $set: { password: encryptedPassword } }
+      );
       res
         .status(200)
         .json({ status: true, message: "Password Changed successfully" });
@@ -168,3 +178,10 @@ exports.changePassword = async (req, res) => {
     res.status(404).json({ messag: "404 Page not Found" });
   }
 };
+
+//Motor data of the user:-
+exports.usersData = async()=>{
+  const {token} = req.body;
+  const email = token.email;
+  aw
+}

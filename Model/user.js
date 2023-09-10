@@ -8,7 +8,7 @@ const user = new mongo.Schema(
       dob:String,
       email:String,
       password:String,
-      mobile:String
+      mobile:String,
     })
 
     const User = mongo.model("User",user);

@@ -2,6 +2,7 @@ const User = require("../Model/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const Motor = require("../Model/Motor");
 require("dotenv").config();
 
 const JWT_SECRET = "nkdgyuacfauwlVGXfwtydjuujPQdxWCHYUGYU";
@@ -180,8 +181,153 @@ exports.changePassword = async (req, res) => {
 };
 
 //Motor data of the user:-
-exports.usersData = async()=>{
-  const {token} = req.body;
-  const email = token.email;
-  aw
-}
+exports.usersData = async (req, res) => {
+  const { token } = req.body;
+  const userEmail = jwt.verify(token, JWT_SECRET);
+  const email = userEmail.email;
+  const motor = await Motor.findOne({email})
+  try {
+   if(motor){
+    const user = await User.findOne({ email });
+    res.json({ data: user , motorData:motor.service });
+   }
+    
+  } catch (error) {
+    res.status(404).json({ messag: error });
+  }
+};
+
+//Add Vehicle:-
+exports.addMotor = async (req, res) => {
+  const { token, RegNum } = req.body;
+  const userEmail = jwt.verify(token, JWT_SECRET);
+  const email = userEmail.email;
+  const existingUser = await Motor.findOne({ email: email });
+  const name = await User.findOne({ email: email });
+  const userName = name.firstName;
+  try {
+    if (!RegNum) {
+      return res.status(200).json({ message: "Please enter Register NUmber" });
+    } else if (!existingUser) {
+      await Motor.create({
+        email: email,
+        name: userName,
+        service: [{ reg_no: RegNum, status: "Ongoing" }],
+      });
+      res.status(200).json({
+        message: `${userName} your New vehicle added`,
+        data: existingUser.service,
+      });
+    } else {
+      await Motor.updateOne({
+        email: email,
+        $push: { service: [{ reg_no: RegNum, status: "Ongoing" }] },
+      });
+      res.json({
+        message: `${userName} , Existing added another vehicle`,
+        data: existingUser.service,
+      });
+    }
+  } catch (error) {
+    res.status(404).json({ messag: error });
+  }
+};
+
+//Service-call - OTP :-
+exports.callBackOTP = async (req, res) => {
+  const { name, mail } = req.body;
+  OTP = Math.floor(1000 + Math.random() * 9000);
+  console.log(OTP);
+  try {
+    if (!name && !mail) {
+      return res.json({ status: false, message: "Fill the Details" });
+    }
+    const mailOption = {
+      from: process.env.EMAIL_USER,
+      to: mail,
+      subject: `Welcome ${name} - From Royal EnField Team  `,
+      html: `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <div>
+        <h4>Hi ${name},</h4> 
+          <h5>Your OTP : ${OTP}</h5>
+           <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/locate-us/landing/service-centre.jpg"  />
+           <h4>Happy Motoring :) Royal Enfield-Team</h4>
+        </div>
+    </body>
+    </html>`,
+    };
+
+    transporter.sendMail(mailOption, (err) => {
+      if (!err) {
+        res.status(200).json({
+          status: true,
+          message: "We Sent OTP to your Mail-ID",
+        });
+      } else {
+        res
+          .status(200)
+          .json({ status: false, message: "Something Went wrong" });
+      }
+    });
+  } catch (error) {
+    res.status(404).json({ message: "Page not Found" });
+  }
+};
+
+// Service-call :-
+exports.callBack = async (req, res) => {
+  const { name, mobile, UserOTP, mail } = req.body;
+  console.log(OTP);
+  try {
+    if (!name && !mobile && !mail) {
+      return res.json({ status: false, message: "Fill the Details" });
+    }
+    if (UserOTP == OTP) {
+      const mailOption = {
+        from: process.env.EMAIL_USER,
+        to: mail,
+        subject: `Welcome ${name} - From Royal EnField Team  `,
+        html: `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Document</title>
+      </head>
+      <body>
+          <div>
+          <h4>Hi ${name},</h4> 
+            <h5>We are glad to help you , Our chief Service Advisor will reach you in a short time on your number - ${mobile}</h5>
+             <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/home/locate-us/leh-rider.jpg"  />
+             <h4>Happy Motoring :) Royal Enfield-Team</h4>
+          </div>
+      </body>
+      </html>`,
+      };
+
+      transporter.sendMail(mailOption, (err) => {
+        if (!err) {
+          res.status(200).json({
+            status: true,
+            message: "You will be reachout by our RE-Team soon",
+          });
+        } else {
+          res
+            .status(200)
+            .json({ status: false, message: "Something Went wrong" });
+        }
+      });
+    } else {
+      res.status(200).json({ status: false, message: "Invalid OTP" });
+    }
+  } catch (error) {
+    res.status(404).json({ message: "Page not Found" });
+  }
+};

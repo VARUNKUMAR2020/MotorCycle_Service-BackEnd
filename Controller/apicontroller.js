@@ -3,20 +3,13 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const Motor = require("../Model/Motor");
+const Query = require("../Model/Query");
 require("dotenv").config();
 
 const JWT_SECRET = "nkdgyuacfauwlVGXfwtydjuujPQdxWCHYUGYU";
 
 //Declarating OTP variable globally
 let OTP;
-
-//cookies option:-
-const cookieOptions = {
-  secure: true,
-  httpOnly: true,
-  expires: new Date(Date.now() + 24 * 3600 * 1000),
-  sameSite: "None",
-};
 
 //Transporter
 const transporter = nodemailer.createTransport({
@@ -36,14 +29,13 @@ exports.home = (req, res) => {
 exports.register = async (req, res) => {
   const { firstName, lastName, gender, dob, email, password, mobile } =
     req.body;
-  //encryption of password
-  const encryptedPassword = await bcrypt.hash(password, 10);
-
+  const existingUser = await User.findOne({ email });
   try {
-    const existingUser = await User.findOne({ email });
     if (existingUser) {
       res.status(200).json({ status: false, message: "User Exits !!" });
     } else {
+      const token = jwt.sign({ email: email }, JWT_SECRET);
+      const encryptedPassword = await bcrypt.hash(password, 10);
       await User.create({
         firstName,
         lastName,
@@ -53,10 +45,12 @@ exports.register = async (req, res) => {
         password: encryptedPassword,
         mobile,
       });
-      res.status(201).json({ status: true, message: "Created SuccessFully" });
+      res
+        .status(200)
+        .json({ status: true, message: "Created SuccessFully", data: token });
     }
   } catch (error) {
-    res.status(400).json({ message: "404 Page Not Found" });
+    res.status(404).json({ message: "404 Page Not Found" });
   }
 };
 
@@ -67,12 +61,12 @@ exports.login = async (req, res) => {
   const existingUser = await User.findOne({ email });
   try {
     if (!existingUser) {
-      res.status(200).json({ status: "false", message: "Please Register" });
+      res.status(200).json({ status: false, message: "Please Register" });
     } else {
       if (bcrypt.compare(password, existingUser.password)) {
         const token = jwt.sign({ email: existingUser.email }, JWT_SECRET);
         res.json({
-          status: "true",
+          status: true,
           message: "Logged in SuccessFully",
           data: token,
         });
@@ -108,10 +102,10 @@ exports.forgotPassword = async (req, res) => {
         </head>
         <body>
             <div>
-            <h4>Hi ${existingUser.firstName},</h4> 
-              <h5>You can Reset Your Password using Below OTP</h5>
+            <h3>Hi ${existingUser.firstName},</h3> 
+              <h3>You can Reset Your Password using Below OTP</h3>
             <h1>${OTP}</h1>
-            <h4>Happy Motoring :) Royal Enfield-Team</h4>
+            <h3>Happy Motoring :) Royal Enfield-Team</h3>
                <img src="https://www.royalenfield.com/content/dam/re-platform-images/dropDown-ourWorld/Dropdown---Our-World---Trip-stories.jpg"  />
               
             </div>
@@ -185,15 +179,26 @@ exports.usersData = async (req, res) => {
   const { token } = req.body;
   const userEmail = jwt.verify(token, JWT_SECRET);
   const email = userEmail.email;
-  const motor = await Motor.findOne({email})
+  const motor = await Motor.findOne({ email: email });
+  const user = await User.findOne({ email });
+  console.log(email);
   try {
-   if(motor){
-    const user = await User.findOne({ email });
-    res.json({ data: user , motorData:motor.service });
-   }
-    
+    if (!motor) {
+      res.status(200).json({
+        message: `Hii ${user.firstName}`,
+        name: user.firstName,
+        mail: email,
+      });
+    } else {
+      res.status(200).json({
+        message: `Hii ${user.firstName}`,
+        name: user.firstName,
+        mail: email,
+        data: motor.service,
+      });
+    }
   } catch (error) {
-    res.status(404).json({ messag: error });
+    res.status(404).json({ message: "error" });
   }
 };
 
@@ -237,7 +242,6 @@ exports.addMotor = async (req, res) => {
 exports.callBackOTP = async (req, res) => {
   const { name, mail } = req.body;
   OTP = Math.floor(1000 + Math.random() * 9000);
-  console.log(OTP);
   try {
     if (!name && !mail) {
       return res.json({ status: false, message: "Fill the Details" });
@@ -255,10 +259,10 @@ exports.callBackOTP = async (req, res) => {
     </head>
     <body>
         <div>
-        <h4>Hi ${name},</h4> 
-          <h5>Your OTP : ${OTP}</h5>
+        <h3>Hi ${name},</h3> 
+          <h3>Your OTP : ${OTP}</h3>
            <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/locate-us/landing/service-centre.jpg"  />
-           <h4>Happy Motoring :) Royal Enfield-Team</h4>
+           <h3>Happy Motoring :) Royal Enfield-Team</h3>
         </div>
     </body>
     </html>`,
@@ -284,7 +288,6 @@ exports.callBackOTP = async (req, res) => {
 // Service-call :-
 exports.callBack = async (req, res) => {
   const { name, mobile, UserOTP, mail } = req.body;
-  console.log(OTP);
   try {
     if (!name && !mobile && !mail) {
       return res.json({ status: false, message: "Fill the Details" });
@@ -303,10 +306,10 @@ exports.callBack = async (req, res) => {
       </head>
       <body>
           <div>
-          <h4>Hi ${name},</h4> 
-            <h5>We are glad to help you , Our chief Service Advisor will reach you in a short time on your number - ${mobile}</h5>
+          <h3>Hi ${name},</h3> 
+            <h3>We are glad to help you , Our chief Service Advisor will reach you in a short time on your number - ${mobile}</h3>
              <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/home/locate-us/leh-rider.jpg"  />
-             <h4>Happy Motoring :) Royal Enfield-Team</h4>
+             <h3>Happy Motoring :) Royal Enfield-Team</h3>
           </div>
       </body>
       </html>`,
@@ -329,5 +332,129 @@ exports.callBack = async (req, res) => {
     }
   } catch (error) {
     res.status(404).json({ message: "Page not Found" });
+  }
+};
+
+// Service History Details :-
+exports.serviceHistory = async (req, res) => {
+  const { token } = req.body;
+  const { email } = jwt.verify(token, JWT_SECRET);
+  const existingUser = await Motor.findOne({ email: email });
+  try {
+    if (!token) {
+      return res.json({ status: false, message: "Please Login" });
+    }
+    if (!existingUser) {
+      res.status(200).json({ status: false, message: "Please Login" });
+    } else {
+      res.status(200).json({
+        status: true,
+        message: "Your's Service Details",
+        data: existingUser.service,
+        name: existingUser.name,
+      });
+    }
+  } catch (error) {}
+};
+
+//Help Service :-
+exports.helpService = async (req, res) => {
+  const { UserOTP, name, mobile, mail, query } = req.body;
+  try {
+    if (!name && !mobile && !mail && !query) {
+      return res.json({ status: false, message: "Fill the Details" });
+    }
+    if (UserOTP == OTP) {
+      await Query.create({
+        name: name,
+        mobile: mobile,
+        mail: mail,
+        query: query,
+      });
+      const mailOption = {
+        from: process.env.EMAIL_USER,
+        to: mail,
+        subject: `Welcome ${name} - From Royal EnField Team  `,
+        html: `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Document</title>
+      </head>
+      <body>
+          <div>
+          <h3>Hi ${name},</h3> 
+            <h3>We are glad to help you , Our chief Service Advisor will reach you in a short time on your number - ${mobile}</h3>
+             <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/home/locate-us/leh-rider.jpg"  />
+             <h4>Happy Motoring :) Royal Enfield-Team</h4>
+          </div>
+      </body>
+      </html>`,
+      };
+
+      transporter.sendMail(mailOption, (err) => {
+        if (!err) {
+          res.status(200).json({
+            status: true,
+            message: "You Query is Stored - We will reach out soon",
+          });
+        } else {
+          res
+            .status(200)
+            .json({ status: false, message: "Something Went wrong" });
+        }
+      });
+    } else {
+      res.status(200).json({ status: false, message: "Invalid OTP" });
+    }
+  } catch (error) {
+    res.status(404).json({ message: "Page not Found" });
+  }
+};
+
+//Rides update :-
+exports.ridesUpdate = async (req, res) => {
+  const { name, mail, pincode, term } = req.body;
+  try {
+    if (name && mail && pincode && term) {
+      const mailOption = {
+        from: process.env.EMAIL_USER,
+        to: mail,
+        subject: `Welcome ${name} - From Royal EnField Team  `,
+        html: `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Document</title>
+      </head>
+      <body>
+          <div>
+          <h3>Hi ${name},</h3> 
+            <h3>We will Ride soon ${name}, we will intimate when we ride on your Area pincode ${pincode}. Mail on your mailID- ${mail}</h3>
+             <img src="https://www.royalenfield.com/content/dam/royal-enfield/india/home/locate-us/leh-rider.jpg"  />
+             <h4>Happy Motoring :) Royal Enfield-Team</h4>
+          </div>
+      </body>
+      </html>`,
+      };
+      transporter.sendMail(mailOption, (err) => {
+        if (!err) {
+          res.status(200).json({
+            status: true,
+            message: "Check you Mail - We will Ride Soon",
+          });
+        } else {
+          res
+            .status(200)
+            .json({ status: false, message: "Something Went wrong" });
+        }
+      });
+    } else {
+      res.json({ status: false, message: "Please Fill the Details" });
+    }
+  } catch (error) {
+    res.status(404).json({ message: "Error", error });
   }
 };

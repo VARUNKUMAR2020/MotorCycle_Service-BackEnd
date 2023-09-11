@@ -12,6 +12,9 @@ const {
   addMotor,
   callBack,
   callBackOTP,
+  serviceHistory,
+  helpService,
+  ridesUpdate,
 } = require("../Controller/apicontroller");
 
 //API Routers
@@ -24,7 +27,10 @@ router.route("/changePassword").post(changePassword);
 router.route("/userdata").post(usersData);
 router.route("/addMotor").post(addMotor);
 router.route("/callback").post(callBack);
-router.route("/otp").post(callBackOTP)
+router.route("/otp").post(callBackOTP);
+router.route("/history").post(serviceHistory);
+router.route("/help").post(helpService);
+router.route("/ride").post(ridesUpdate);
 
 
 module.exports = router;

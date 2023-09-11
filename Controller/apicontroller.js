@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const Motor = require("../Model/Motor");
 const Query = require("../Model/Query");
-require("dotenv").config();
 
 const JWT_SECRET = "nkdgyuacfauwlVGXfwtydjuujPQdxWCHYUGYU";
 
@@ -15,8 +14,8 @@ let OTP;
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: "v.varunvenkat06081998@gmail.com",
+    pass: "yonpdfpheczokktp",
   },
 });
 
@@ -90,7 +89,7 @@ exports.forgotPassword = async (req, res) => {
   try {
     if (existingUser) {
       const mailOption = {
-        from: process.env.EMAIL_USER,
+        from: "v.varunvenkat06081998@gmail.com",
         to: existingUser.email,
         subject: `Welcome From Royal EnField Team - ${existingUser.firstName} `,
         html: `<!DOCTYPE html>
@@ -247,7 +246,7 @@ exports.callBackOTP = async (req, res) => {
       return res.json({ status: false, message: "Fill the Details" });
     }
     const mailOption = {
-      from: process.env.EMAIL_USER,
+      from: "v.varunvenkat06081998@gmail.com",
       to: mail,
       subject: `Welcome ${name} - From Royal EnField Team  `,
       html: `<!DOCTYPE html>
@@ -294,7 +293,7 @@ exports.callBack = async (req, res) => {
     }
     if (UserOTP == OTP) {
       const mailOption = {
-        from: process.env.EMAIL_USER,
+        from: "v.varunvenkat06081998@gmail.com",
         to: mail,
         subject: `Welcome ${name} - From Royal EnField Team  `,
         html: `<!DOCTYPE html>
@@ -372,7 +371,7 @@ exports.helpService = async (req, res) => {
         query: query,
       });
       const mailOption = {
-        from: process.env.EMAIL_USER,
+        from: "v.varunvenkat06081998@gmail.com",
         to: mail,
         subject: `Welcome ${name} - From Royal EnField Team  `,
         html: `<!DOCTYPE html>
@@ -419,7 +418,7 @@ exports.ridesUpdate = async (req, res) => {
   try {
     if (name && mail && pincode && term) {
       const mailOption = {
-        from: process.env.EMAIL_USER,
+        from: "v.varunvenkat06081998@gmail.com",
         to: mail,
         subject: `Welcome ${name} - From Royal EnField Team  `,
         html: `<!DOCTYPE html>
